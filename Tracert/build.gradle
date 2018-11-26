@@ -10,10 +10,13 @@ sourceCompatibility = 1.8
 
 repositories {
     mavenCentral()
+    maven { url "https://clojars.org/repo" }
 }
 
 dependencies {
     compile "org.jetbrains.kotlin:kotlin-stdlib-jdk8"
+// https://mvnrepository.com/artifact/clj-net-pcap/clj-net-pcap
+    compile group: 'clj-net-pcap', name: 'clj-net-pcap', version: '1.7.1'
     testCompile group: 'junit', name: 'junit', version: '4.12'
 }
 
