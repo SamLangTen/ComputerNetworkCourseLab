@@ -115,7 +115,7 @@ namespace SocketRemote.Protocol.Server
             return messageId;
         }
 
-        private byte[] generateReturnData(ActionExecutionResult result,int actionId)
+        private byte[] generateReturnData(ActionExecutionResult result, int actionId)
         {
             var datas = new List<byte>();
             datas.AddRange(Encoding.UTF8.GetBytes("SSSR"));
@@ -132,12 +132,12 @@ namespace SocketRemote.Protocol.Server
             datas.AddRange(chiperDatas);
             return datas.ToArray();
         }
-        
-        public SocketRemoteServer(string Host, int Port, string SecretKey)
+
+        public SocketRemoteServer(string Host, int Port, byte[] SecretKey)
         {
             _addressSocket = new IPEndPoint(IPAddress.Parse(Host), Port);
             _socket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
-            _auth = new SRAuthentication(SecretKey);
+            _auth = new SRAuthentication(SecretKey.Take(16).ToArray(), SecretKey.Skip(16).Take(16).ToArray());
             _distMan = new DistributionManager(null);
             _distMan.RemoteActionReturn += _distMan_RemoteActionReturn;
             _returnMessages = new List<RemoteActionReturnEventArgs>();
