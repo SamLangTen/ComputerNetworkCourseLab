@@ -9,5 +9,7 @@ namespace SocketRemote.Protocol.RemoteActions
         int ActionId { get; }
         ActionExecutionResult Execute(byte[] command);
         string GetServerCommand();
+        Dictionary<string,string> CommandProperties { get; set; }
+
     }
 }

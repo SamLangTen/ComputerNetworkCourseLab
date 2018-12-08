@@ -51,7 +51,7 @@ namespace SocketRemote.Protocol.Server
             while (messageIds.Count > 0)
             {
                 var message = _returnMessages.FirstOrDefault(m => messageIds.Contains(m.MessageId));
-                var sendingData = generateReturnData(message.Result, message.RemoteActionId);
+                var sendingData = generateReturnData(message.Result, message.RemoteActionId, message.MessageId);
                 socket.Send(sendingData);
             }
             socket.Shutdown(SocketShutdown.Both);
@@ -101,8 +101,10 @@ namespace SocketRemote.Protocol.Server
         {
             //第一个字节为命令id
             var actionId = Convert.ToInt32(data[0]);
+            //接下来四个字节为随机消息码
+            var messageId = BitConverter.ToInt32(data.Skip(1).Take(4).ToArray(), 0);
             //生成随机消息码
-            var messageId = new Random(actionId + Convert.ToInt32(DateTime.Now.Ticks)).Next();
+            //var messageId = new Random(actionId + Convert.ToInt32(DateTime.Now.Ticks)).Next();
             //剩下为命令内容
             var content = data.Skip(1).ToArray();
             var message = new RemoteActionMessage()
@@ -115,13 +117,14 @@ namespace SocketRemote.Protocol.Server
             return messageId;
         }
 
-        private byte[] generateReturnData(ActionExecutionResult result, int actionId)
+        private byte[] generateReturnData(ActionExecutionResult result, int actionId, int messageId)
         {
             var datas = new List<byte>();
             datas.AddRange(Encoding.UTF8.GetBytes("SSSR"));
-            //添加一个字节的actionId、一个字节的确认码和剩余内容
+            //添加一个字节的actionId、四个字节的messageId、一个字节的确认码和剩余内容
             var actionContentPlain = new List<byte>();
             actionContentPlain.Add(BitConverter.GetBytes(actionId)[0]);
+            actionContentPlain.AddRange(BitConverter.GetBytes(messageId));
             actionContentPlain.Add(Convert.ToByte(result.State));
             actionContentPlain.AddRange(result.Message);
             //加密数据，提取长度
@@ -136,9 +139,9 @@ namespace SocketRemote.Protocol.Server
         public SocketRemoteServer(string Host, int Port, byte[] SecretKey)
         {
             _addressSocket = new IPEndPoint(IPAddress.Parse(Host), Port);
-            _socket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
+            _socket = new Socket(_addressSocket.AddressFamily, SocketType.Stream, ProtocolType.Tcp);
             _auth = new SRAuthentication(SecretKey.Take(16).ToArray(), SecretKey.Skip(16).Take(16).ToArray());
-            _distMan = new DistributionManager(null);
+            _distMan = new DistributionManager(RemoteActionManager.GetAllRemoteActionInstances());
             _distMan.RemoteActionReturn += _distMan_RemoteActionReturn;
             _returnMessages = new List<RemoteActionReturnEventArgs>();
         }
