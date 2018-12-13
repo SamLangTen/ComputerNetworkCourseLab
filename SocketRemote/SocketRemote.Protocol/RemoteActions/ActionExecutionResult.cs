@@ -8,6 +8,7 @@ namespace SocketRemote.Protocol.RemoteActions
     {
         public ActionExecutionState State { get; set; }
         public byte[] Message { get; set; }
+        public int MessageId { get; set; }
     }
 
     public enum ActionExecutionState

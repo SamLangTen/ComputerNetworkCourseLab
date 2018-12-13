@@ -17,7 +17,7 @@ namespace SocketRemote.Protocol.Client
         private SRAuthentication _auth;
         private Socket _socket;
 
-        private IList<ActionExecutionResult> receiveReturnDatas(Socket socket, IList<int> MessageIds)
+        private async Task<IEnumerable<ActionExecutionResult>> receiveReturnDatas(Socket socket)
         {
             //接收返回的数据
             var byteBuffer = new byte[1024];
@@ -25,14 +25,14 @@ namespace SocketRemote.Protocol.Client
             int byteRec;
             do
             {
-                byteRec = socket.Receive(byteBuffer, byteBuffer.Length, SocketFlags.None);
+                byteRec = await Task.Run(() => socket.Receive(byteBuffer, byteBuffer.Length, SocketFlags.None));
                 packetRec.AddRange(byteBuffer);
             } while (byteRec > 0 && socket.Connected);
             //处理包
-            return parseReturnDatas(packetRec.ToArray(), MessageIds);
+            return parseReturnDatas(packetRec.ToArray());
         }
 
-        private IList<ActionExecutionResult> parseReturnDatas(byte[] datas, IList<int> MessageIds)
+        private IEnumerable<ActionExecutionResult> parseReturnDatas(byte[] datas)
         {
             int seek = 0;
             var stringData = Encoding.UTF8.GetChars(datas);
@@ -40,7 +40,7 @@ namespace SocketRemote.Protocol.Client
             while (seek < datas.Length)
             {
                 seek = stringData.Skip(seek).ToArray().ToString().IndexOf("SSSR");
-                if (seek == -1) return rtnList;
+                if (seek == -1) yield return null;
                 //跳过四个字节的SSSR头
                 seek += 4;
                 //提取两个字节的包长度
@@ -50,18 +50,18 @@ namespace SocketRemote.Protocol.Client
                 var plainBytes = _auth.Decrpyt(datas.Skip(seek).Take(length).ToArray());
                 //提取1字节actionId、4字节messageId、1个字节的确认码和剩余内容
                 var actionId = Convert.ToInt32(plainBytes.Take(1));
-                var messageId = BitConverter.ToInt32(plainBytes.Skip(1).Take(4).ToArray(),0);
+                var messageId = BitConverter.ToInt32(plainBytes.Skip(1).Take(4).ToArray(), 0);
                 var state = (ActionExecutionState)Convert.ToInt32(plainBytes.Skip(5).Take(1).ToArray());
                 var content = plainBytes.Skip(6).ToArray();
                 //组装返回类
-                var result = new ActionExecutionResult() {
-                     Message = content,
-                     State = state
+                var result = new ActionExecutionResult()
+                {
+                    Message = content,
+                    State = state,
+                    MessageId = messageId
                 };
-                rtnList.Add(result);
-                MessageIds.Remove(messageId);
+                yield return result;
             }
-            return rtnList;
         }
 
         public SocketRemoteClient(string host, int port, byte[] SecretKeys)
@@ -78,7 +78,7 @@ namespace SocketRemote.Protocol.Client
 
         public void Disconnect() => _socket?.Disconnect(true);
 
-        public IList<ActionExecutionResult> SendCommand(IList<IRemoteAction> actions, TimeSpan timeout)
+        public async Task<IEnumerable<ActionExecutionResult>> SendCommand(IList<IRemoteAction> actions, TimeSpan timeout)
         {
             //先转换为随机消息码的组合
             var commandsObject = actions.Select(a => new
@@ -100,16 +100,7 @@ namespace SocketRemote.Protocol.Client
             });
             //后台等待命令返回
             var ids = commandsObject.Select(a => a.MessageId);
-            var cts = new CancellationTokenSource();
-            IList<ActionExecutionResult> results = new List<ActionExecutionResult>();
-            Task.Run(() =>
-                results = receiveReturnDatas(_socket, ids.ToArray()), cts.Token
-            );
-            var startTime = DateTime.Now;
-            //等待命令返回
-            while (ids.Count() > 0 && (DateTime.Now - startTime < timeout)) ;
-            cts.Cancel();
-            return results;
+            return await receiveReturnDatas(_socket);
         }
 
 
