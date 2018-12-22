@@ -13,6 +13,7 @@ namespace SocketRemote.Protocol.Client
 {
     public class SocketRemoteClient
     {
+
         private IPEndPoint _addressSocket;
         private SRAuthentication _auth;
         private Socket _socket;
@@ -26,10 +27,23 @@ namespace SocketRemote.Protocol.Client
             do
             {
                 byteRec = socket.Receive(byteBuffer, byteBuffer.Length, SocketFlags.None);
-                packetRec.AddRange(byteBuffer);
-            } while (byteRec > 0 && socket.Connected);
+                packetRec.AddRange(byteBuffer.Take(byteRec));
+
+            } while (byteRec > 0 && socket.Connected && !checkPacket(packetRec.ToArray()));
             //处理包
             return parseReturnDatas(packetRec.ToArray());
+        }
+
+        private bool checkPacket(byte[] datas)
+        {
+            var stringData = Encoding.UTF8.GetChars(datas);
+            var seek = new string(stringData).IndexOf("SSSR");
+            if (seek == -1) return false;
+            seek += 4;
+            if (seek + 2 >= datas.Length) return false;
+            var length = Convert.ToInt32(BitConverter.ToInt16(datas.Skip(seek).Take(2).ToArray(), 0));
+            if (seek + length < datas.Length) return true;
+            return false;
         }
 
         private IEnumerable<ActionExecutionResult> parseReturnDatas(byte[] datas)
