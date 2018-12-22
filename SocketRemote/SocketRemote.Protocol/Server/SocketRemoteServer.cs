@@ -8,6 +8,7 @@ using System.Threading;
 using System.Linq;
 using SocketRemote.Protocol.Authentication;
 using SocketRemote.Protocol.RemoteActions;
+using SocketRemote.Protocol.Server.Event;
 
 namespace SocketRemote.Protocol.Server
 {
@@ -20,6 +21,8 @@ namespace SocketRemote.Protocol.Server
         private CancellationTokenSource _bgcts;
         private IList<RemoteActionReturnEventArgs> _returnMessages;
 
+        public event EventHandler<StringEventArgs> ClientMessageReceived;
+        public event EventHandler<StringEventArgs> ServerMessagePrepared;
 
         private void backgroundListenning()
         {
@@ -55,6 +58,12 @@ namespace SocketRemote.Protocol.Server
                     var message = _returnMessages.FirstOrDefault(m => messageIds.Contains(m.MessageId));
                     if (message != null)
                     {
+                        //触发事件
+                        ServerMessagePrepared?.Invoke(this, new StringEventArgs()
+                        {
+                            Content = $"IP:{socket.RemoteEndPoint.AddressFamily.ToString()}\tMessageId:{message.MessageId.ToString()}"
+                        });
+                        //发送
                         var sendingData = generateReturnData(message.Result, message.RemoteActionId, message.MessageId);
                         socket.Send(sendingData);
                         messageIds.Remove(messageIds.First(i => i == message.MessageId));
@@ -64,8 +73,8 @@ namespace SocketRemote.Protocol.Server
                 {
                     continue;
                 }
-                
-                
+
+
             }
             socket.Shutdown(SocketShutdown.Both);
             socket.Close();
@@ -111,6 +120,11 @@ namespace SocketRemote.Protocol.Server
                 //解密数据，交给命令处理器处理命令
                 var decryptedText = _auth.Decrpyt(packetData);
                 var messageId = parseInstruction(decryptedText);
+                //触发服务器事件
+                ClientMessageReceived?.Invoke(this, new StringEventArgs()
+                {
+                    Content = $"IP:{socket.RemoteEndPoint.AddressFamily.ToString()}\tMessageId:{messageId.ToString()}\tMessage:{new string(Encoding.UTF8.GetChars(decryptedText))}"
+                });
                 messagesId.Add(messageId);
                 //下一步
                 seek += length;
@@ -165,7 +179,7 @@ namespace SocketRemote.Protocol.Server
         {
             _addressSocket = new IPEndPoint(IPAddress.Parse(Host), Port);
             _socket = new Socket(_addressSocket.AddressFamily, SocketType.Stream, ProtocolType.Tcp);
-            _auth = new SRAuthentication(SecretKey.Take(16).ToArray(), SecretKey.Skip(16).Take(16).ToArray());
+            _auth = new SRAuthentication(SecretKey.Take(32).ToArray(), SecretKey.Skip(32).Take(16).ToArray());
             _distMan = new DistributionManager(RemoteActionManager.GetAllRemoteActionInstances());
             _distMan.RemoteActionReturn += _distMan_RemoteActionReturn;
             _returnMessages = new List<RemoteActionReturnEventArgs>();

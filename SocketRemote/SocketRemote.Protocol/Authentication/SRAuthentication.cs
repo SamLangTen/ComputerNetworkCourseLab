@@ -23,12 +23,14 @@ namespace SocketRemote.Protocol.Authentication
 
         public byte[] Decrpyt(byte[] chiperText)
         {
+            
             var transformer = _rijndaelCipher.CreateDecryptor();
             return transformer.TransformFinalBlock(chiperText, 0, chiperText.Length);
         }
 
         public byte[] Encrpyt(byte[] plainText)
         {
+
             var transformer = _rijndaelCipher.CreateEncryptor();
             return transformer.TransformFinalBlock(plainText, 0, plainText.Length);
         }

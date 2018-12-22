@@ -82,7 +82,7 @@ namespace SocketRemote.Protocol.Client
         {
             var ip = Dns.GetHostEntry(host);
             _addressSocket = new IPEndPoint(ip.AddressList.FirstOrDefault(), port);
-            _auth = new SRAuthentication(SecretKeys.Take(16).ToArray(), SecretKeys.Skip(16).Take(16).ToArray());
+            _auth = new SRAuthentication(SecretKeys.Take(32).ToArray(), SecretKeys.Skip(32).Take(16).ToArray());
             _socket = new Socket(_addressSocket.AddressFamily, SocketType.Stream, ProtocolType.Tcp);
         }
 
