@@ -3,7 +3,9 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 15
 VisualStudioVersion = 15.0.28010.2016
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SocketRemote.Protocol", "SocketRemote.Protocol\SocketRemote.Protocol.csproj", "{53EB9460-8ED3-4CDD-9B46-4126AB0715DD}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "SocketRemote.Protocol", "SocketRemote.Protocol\SocketRemote.Protocol.csproj", "{53EB9460-8ED3-4CDD-9B46-4126AB0715DD}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SocketRemote.CommonClient", "SocketRemote.CommonClient\SocketRemote.CommonClient.csproj", "{F57F020E-CBB7-45F6-A1D9-D1C65170F9F6}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -15,6 +17,10 @@ Global
 		{53EB9460-8ED3-4CDD-9B46-4126AB0715DD}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{53EB9460-8ED3-4CDD-9B46-4126AB0715DD}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{53EB9460-8ED3-4CDD-9B46-4126AB0715DD}.Release|Any CPU.Build.0 = Release|Any CPU
+		{F57F020E-CBB7-45F6-A1D9-D1C65170F9F6}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{F57F020E-CBB7-45F6-A1D9-D1C65170F9F6}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{F57F020E-CBB7-45F6-A1D9-D1C65170F9F6}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{F57F020E-CBB7-45F6-A1D9-D1C65170F9F6}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

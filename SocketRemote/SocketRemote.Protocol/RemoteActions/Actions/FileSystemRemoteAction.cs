@@ -17,7 +17,7 @@ namespace SocketRemote.Protocol.RemoteActions.Actions
         ///     Action(ls) - 执行的文件系统操作
         ///     Filename   - 执行操作的文件系统路径 
         /// </remarks>
-        public Dictionary<string, string> CommandProperties { get => throw new NotImplementedException(); set => throw new NotImplementedException(); }
+        public Dictionary<string, string> CommandProperties { get; set; }
 
         public FileSystemRemoteAction()
         {
