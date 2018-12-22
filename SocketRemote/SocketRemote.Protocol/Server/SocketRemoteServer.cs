@@ -44,18 +44,43 @@ namespace SocketRemote.Protocol.Server
             do
             {
                 byteRec = socket.Receive(byteBuffer, byteBuffer.Length, SocketFlags.None);
-                packetRec.AddRange(byteBuffer);
-            } while (byteRec > 0);
+                packetRec.AddRange(byteBuffer.Take(byteRec));
+            } while (byteRec > 0 && !checkPacket(packetRec.ToArray()));
             var messageIds = parsePacket(packetRec.ToArray(), socket);
             //等待包返回
             while (messageIds.Count > 0)
             {
-                var message = _returnMessages.FirstOrDefault(m => messageIds.Contains(m.MessageId));
-                var sendingData = generateReturnData(message.Result, message.RemoteActionId, message.MessageId);
-                socket.Send(sendingData);
+                try
+                {
+                    var message = _returnMessages.FirstOrDefault(m => messageIds.Contains(m.MessageId));
+                    if (message != null)
+                    {
+                        var sendingData = generateReturnData(message.Result, message.RemoteActionId, message.MessageId);
+                        socket.Send(sendingData);
+                        messageIds.Remove(messageIds.First(i => i == message.MessageId));
+                    }
+                }
+                catch (Exception)
+                {
+                    continue;
+                }
+                
+                
             }
             socket.Shutdown(SocketShutdown.Both);
             socket.Close();
+        }
+
+        private bool checkPacket(byte[] datas)
+        {
+            var stringData = Encoding.UTF8.GetChars(datas);
+            var seek = new string(stringData).IndexOf("SSSR");
+            if (seek == -1) return false;
+            seek += 4;
+            if (seek + 2 >= datas.Length) return false;
+            var length = Convert.ToInt32(BitConverter.ToInt16(datas.Skip(seek).Take(2).ToArray(), 0));
+            if (seek + length < datas.Length) return true;
+            return false;
         }
 
         /// <summary>
@@ -70,7 +95,7 @@ namespace SocketRemote.Protocol.Server
             while (seek < datas.Count())
             {
                 //SSSR协议包头四个字节为字符串SSSR
-                seek = stringData.Skip(seek).ToArray().ToString().IndexOf("SSSR");
+                seek = new string(stringData.Skip(seek).ToArray()).IndexOf("SSSR");
                 if (seek == -1)
                 {
                     socket.Send(Encoding.UTF8.GetBytes("This is a SSSocketRemote protocol server"));
@@ -81,7 +106,7 @@ namespace SocketRemote.Protocol.Server
                 var length = (datas[seek + 1] << 8) + datas[seek];
                 seek += 2;
                 //然后剩下length字节数据为命令长度
-                if (!(seek + length < datas.Count())) break;
+                if (!(seek + length <= datas.Count())) break;
                 var packetData = datas.Skip(seek).Take(length).ToArray();
                 //解密数据，交给命令处理器处理命令
                 var decryptedText = _auth.Decrpyt(packetData);
@@ -106,7 +131,7 @@ namespace SocketRemote.Protocol.Server
             //生成随机消息码
             //var messageId = new Random(actionId + Convert.ToInt32(DateTime.Now.Ticks)).Next();
             //剩下为命令内容
-            var content = data.Skip(1).ToArray();
+            var content = data.Skip(5).ToArray();
             var message = new RemoteActionMessage()
             {
                 ActionId = actionId,
@@ -154,12 +179,14 @@ namespace SocketRemote.Protocol.Server
         public void StartListenning()
         {
             _bgcts = new CancellationTokenSource();
+            _distMan.Start();
             Task.Run(() => backgroundListenning(), _bgcts.Token);
         }
 
         public void EndListenning()
         {
             _bgcts.Cancel();
+            _distMan.Stop();
         }
 
     }

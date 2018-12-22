@@ -30,7 +30,7 @@ namespace SocketRemote.Protocol.RemoteActions.Actions
 
         public ActionExecutionResult Execute(byte[] command)
         {
-            var textCommand = Encoding.UTF8.GetChars(command).ToString();
+            var textCommand = new string(Encoding.UTF8.GetChars(command));
             var textResultMessage = "";
             var state = ActionExecutionState.Success;
             /*
@@ -40,7 +40,8 @@ namespace SocketRemote.Protocol.RemoteActions.Actions
             switch (textCommand[0])
             {
                 case '0':
-                    textResultMessage = textCommand.Substring(1);
+                    var path = textCommand.Substring(1);
+                    textResultMessage = string.Join("\n", Directory.GetFiles(path)) + string.Join("\n", Directory.GetDirectories(path));
                     break;
                 default:
                     textResultMessage = "Unregnoized Command";
